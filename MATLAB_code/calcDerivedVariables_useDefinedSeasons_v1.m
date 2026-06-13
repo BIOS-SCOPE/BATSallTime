@@ -18,19 +18,19 @@ clear all
 close all
 
 %%add options depending on computer, KL is jumping between computers
-if isequal(getenv('COMPUTERNAME'),'ESPRESSO')
+if isequal(getenv('COMPUTERNAME'),'CORTADO')
     %% add ./BIOSSCOPE/CTD_BOTTLE/mfiles into matlab path
-    addpath(genpath('C:\Users\klongnecker\Documents\GitHub\BATSallTime\MATLAB_code\mfiles'));    
+    addpath(genpath('C:\DropBox\GitHub_cortado\BATSallTime\MATLAB_code\mfiles'));    
     
     %% update the folder information before getting started
-    rootdir = 'C:\Users\klongnecker\Documents\Dropbox\Current projects\Kuj_BIOSSCOPE\RawData\';
     %Krista has put the next two folders outside the space accessible by GitHub
     %These files are too large to put into GitHub
-    
-    workdir = fullfile(rootdir,'RCcalcBATS\data_temporary\');
-    % workdir = fullfile(rootdir,'RCcalcBATS\data_copySmall_testing\');
-    
-    outdir = fullfile(rootdir,'RCcalcBATS\data_holdingZone\');
+    % can use the files in data_pipeline, no need to copy them to new
+    % repository
+    rootdir = 'C:\DropBox\GitHub_cortado\data_pipeline\RawData\';
+    workdir = fullfile(rootdir,'CTDrelease_20260326\');  
+
+    outdir = fullfile('C:\DropBox\GitHub_cortado\BATSallTime\data_holdingZone\'); %keep output with BATSallTime
 
 elseif isequal(getenv('COMPUTERNAME'),'LONGNECKER-1650')
     %% add ./BIOSSCOPE/CTD_BOTTLE/mfiles into matlab path    

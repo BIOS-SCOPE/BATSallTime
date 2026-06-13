@@ -1,59 +1,62 @@
-function Xout = calculate_BATSderivedVariables(TTin, do_plots, outdir, giveNotice)
-% function Xout = calculate_BATSderivedVariables(TTin, do_plots, outdir,giveNotice)
-% This version uses the data downloaded from BCO-DMO, which has been parsed
-% out for a single cruise in calcDerivedVariables. The code will create
-% a structure with added fields, and write a .csv file for each individual cruise. 
+function Xout = create_BATS_ctd_files(TTin, trans_dates, do_plots, processedDir)
+% function Xout = create_BATS_ctd_files(TTin, trans_dates, do_plots, processedDir)
+% Reads a  space-separated *_ctd.txt (from BATS group),
+% creates a structure with added fields, and writes a .csv file 
+% for each individual cast.  The output filenames are constructed
+% from yyyymmdd_T###_ctd.csv (T is bats_cruise_type [0..6,9] and ### is cast).
 % INPUT:
-%  TTin holds the data from one cruise as a square matrix
-%  do_plots is 1/0 depending if you do (1) or do not (0) want figures
-%  outdir is where to put the final CSV files
-%  giveNotice is 0/1 depending on how much feedback you want to see in the
-%  command window
-%
-% Notes from Krista, this script can be used to generate the seasons for all
-% BATS data...which can fail. Moving forward this will be how we think about
-% seasons in the absence of glider data. Data up through May 2024 have been 
-% curated by Krista Longnecker or Ruth Curry.
-%
+%  TTin is the name matrix that came in - will be one cruise in a table
+%  trans_dates is [] or a struct with fields
+%    .mixed  (n x 2 array of start/end dates)  
+%    .spring 
+%    .strat
+%    .fall
+% do_plots is 1/0 as to whether or not you want to see plots as you go
+% processedDir is where to put the output files: be certain that this is
+% not synced to GitHub
 % OUTPUT:
-%  Writes individual files for each cruise in csv format
+%  Writes individual files for each cast in csv format, plus a single csv
+%           file for the entire cruise
 %  Xout  :  a matlab structure with fields storing info for entire
-%           cruise in row vectors and rectangular matrices (KL note this is
-%           not currently being exported)
+%           cruise in row vectors and rectangular matrices.
 
 % NOTE:  Vertical zones are computed using ML_dens125
-%
-% Original script from Ruth Curry BIOS/ASU (2023); Krista Longnecker
-% editing to add more MLD definitions 24 June 2024
-% Krista Longnecker, 21 February 2026 to use data from BCO-DMO
+% Original script was create_BIOSSCOPE_ctd_files.m by Ruth Curry
+% Changed to use data from BCO-DMO for the BATS cruises, Krista Longnecker
+% 12 June 2026
+% Most of the change is to take the new data format and make it match
+% Ruth's expected format. I also now set MAXZ based on the data as opposed
+% to preset depth of 2500m
 
-%%  Assign columns 
-%data from BCO-DMO have headers, so use them to find the right column
-%information...better than fixing the label
-labels = TTin.Properties.VariableNames';
-icol.cast_id = find(strcmp(labels,'ID')==1);
-icol.dec_yr = find(strcmp(labels,'Decimal_Year_deployed')==1);
-icol.lat = find(strcmp(labels,'Latitude_deployed')==1);
-icol.lon =find(strcmp(labels,'Longitude_deployed')==1);
-icol.pr = find(strcmp(labels,'Pressure')==1);
-icol.de = find(strcmp(labels,'Depth')==1);
-icol.te = find(strcmp(labels,'Temperature')==1);
-icol.sa = find(strcmp(labels,'Salinity')==1);
-icol.o2 = find(strcmp(labels,'Oxygen')==1);
-icol.beam = find(strcmp(labels,'BAC')==1);
-icol.fluor = find(strcmp(labels,'Flu')==1);
-icol.par = find(strcmp(labels,'PAR')==1);
+%%  Read file into rectangular array, and store each column as a field in structure CTD
+% fid = fopen(infile,'r');
+% 
+% disp(['Reading ',infile]);
+% disp('   be patient..... ');
+% fmt = '%f%f%f%f%f%f%f%f%f%f%f%f%f%[^\n\r]';
+% 
+% TTin=textscan(fid,fmt,'Delimiter', '', 'WhiteSpace', '', 'EmptyValue' ,NaN, 'ReturnOnError', false);
+% fclose(fid);
+% clear fid fmt
+% %%  Assign columns - change to match to variable names
+icol.cast_id = find(strcmp(TTin.Properties.VariableNames,'ID'));
+icol.dec_yr = find(strcmp(TTin.Properties.VariableNames,'Decimal_Year_deployed'));
+icol.lat = find(strcmp(TTin.Properties.VariableNames,'Latitude_deployed'));
+icol.lon =find(strcmp(TTin.Properties.VariableNames,'Longitude_deployed'));
+icol.pr = find(strcmp(TTin.Properties.VariableNames,'Pressure'));
+icol.de = find(strcmp(TTin.Properties.VariableNames,'Depth'));
+icol.te = find(strcmp(TTin.Properties.VariableNames,'Temperature'));
+%icol.co = xx %not in BATS data
+icol.sa = find(strcmp(TTin.Properties.VariableNames,'Salinity')); 
+icol.o2 = find(strcmp(TTin.Properties.VariableNames,'Oxygen'));
+icol.beam = find(strcmp(TTin.Properties.VariableNames,'BAC'));
+icol.fluor = find(strcmp(TTin.Properties.VariableNames,'Flu'));
+icol.par = find(strcmp(TTin.Properties.VariableNames,'PAR'));
 
-% MAXZ is the deepest water sample in this cruise (Ruth was setting this to
-% 2500 m, but KL changed this to dynamically determine for each cast);
-%does this work better if I take max pressure? Have a case where using MAXZ
-%does not allow enough padding to make a square matrix.
-% MAXZ = round(max(TTin{:,icol.de}));
-MAXZ = round(max(TTin{:,icol.pr}));
-
-% create structure to store all the casts     
+ % create structure to store all the casts     
 CTD = struct();   % for conversion to csv files
 
+%change syntax to use the table KL 6/12/2026
 CTD.BATS_id = TTin{:,icol.cast_id};
     yy = floor(CTD.BATS_id .* 1e-7);
     xx =  CTD.BATS_id - yy .* 1e7;
@@ -72,7 +75,8 @@ CTD.lonW = TTin{:,icol.lon};
 CTD.Pressure = TTin{:,icol.pr};
 CTD.Depth  = TTin{:,icol.de};
 CTD.Temp = TTin{:,icol.te};
-CTD.Salt = TTin{:,icol.sa};
+CTD.Salt = TTin{:,icol.sa}; 
+%CTD.Conductivity = TTin{icol.co};
 CTD.O2 = TTin{:,icol.o2};
 CTD.Beam = TTin{:,icol.beam};
 CTD.PAR = TTin{:,icol.par};
@@ -105,15 +109,7 @@ CTD.VertZone = ZZ;
 CTD.MLD_dens125 = ZZ;
 CTD.MLD_bvfrq = ZZ;
 CTD.MLD_densT2 = ZZ;
-CTD.MLD_densT3 = ZZ; %KL adding MLD definitions, 6/24/2024
-CTD.MLD_densT1 = ZZ;
-CTD.MLD_dens2 = ZZ;
-CTD.MLD_densGR = ZZ;
-CTD.MLD_te2 = ZZ;
 CTD.DCM = ZZ;
-CTD.DCMde_top = ZZ;
-CTD.DCMde_bot = ZZ;
-CTD.DCMinML = ZZ;
 CTD.par_est = ZZ;
 CTD.par0 = ZZ;
 CTD.kpar = ZZ;
@@ -121,14 +117,10 @@ CTD.z_par_1pcnt = ZZ;
 CTD.z_par_halfpcnt = ZZ;
 CTD.z_par_tenthpcnt = ZZ;
 clear ZZ TTin dvec mtime
-
-%%  create structure Xout to be saved as .mat file 
-%leave here because Ruth later pulls values from here that get
-%exported in the CSV file. The Xout structure was exported as *mat file in
-%earlier versions of this script.
+%%  create structure Xout to be saved as .mat file
 Xout = struct();  
-
-castlist = unique(CTD.BATS_id); %KL note: this is 5-digit cruise and 3-digit cast (8 digits total)
+%
+castlist = unique(CTD.BATS_id);
 ncast = length(castlist);
 % row vectors
 XX = ones(1,ncast) .* NaN;   
@@ -147,15 +139,7 @@ Xout.lon = XX;
 Xout.MLD_dens125 = XX;
 Xout.MLD_bvfrq = XX;
 Xout.MLD_densT2 = XX;
-Xout.MLD_densT3 = XX; %KL adding MLD 6/24/2024
-Xout.MLD_densT1 = XX;
-Xout.MLD_dens2 = XX;
-Xout.MLD_densGR = XX;
-Xout.MLD_te2 = XX;
 Xout.DCM = XX;
-Xout.DCMde_top = XX;
-Xout.DCMde_bot = XX;
-Xout.DCMinML = XX;
 Xout.Season = XX;
 Xout.Sunrise = XX;
 Xout.Sunset = XX;
@@ -167,12 +151,15 @@ Xout.z_par_tenthpcnt = XX;
 Xout.fluor_offset = XX;
 clear XX
 
+
 %  rectangular arrays
+%MAXZ = round(max(CTD.Depth));
+MAXZ = round(max(CTD.Pressure)); %I think if I use Pressure this will be OK KL 6/12/2026
 XX= ones(MAXZ,ncast) .* NaN;
 Xout.pr = XX;
 Xout.de = XX;
 Xout.te = XX;
-% Xout.co = XX; %KL 2/8/2024 no conductivity data
+Xout.co = XX;
 Xout.sa = XX;
 Xout.o2 = XX;
 Xout.bac = XX;
@@ -190,7 +177,7 @@ clear XX
 
 % Copy data from CTD struct into Xout fields
 for ii = 1:ncast
-   theCast = castlist(ii); %KL note: this is 5-digit cruise and 3-digit cast
+   theCast = castlist(ii);
    AA = theCast;
    BB = mod(AA, 1e7);
    CC = mod(BB, 1e3);
@@ -209,8 +196,8 @@ for ii = 1:ncast
        %running the script on data that has already been processed
        %KL 2/12/2026: set scripts to clear the outdir before starting, so 
        % that gets rid of one cause for this error. However, do not delete
-       % the check as will need to know if I cannot make a square matrixc
-       %keyboard
+       % the check as will need to know if I cannot make a square matrix
+       keyboard
        error('foo:bar',['Data arrays not long enough. In the later case, increase MAXZ to at least ',num2str(nz)])
    end
    Xout.mtime(ii) = decyear2dnum(CTD.decy(itop));
@@ -224,14 +211,14 @@ for ii = 1:ncast
    Xout.lon(ii) = CTD.lonW(itop) * -1;
 %  Sunrise() uses lon, W is positive
      [rhr,rmin,shr,smin]=sunrise(dvec(2),dvec(3),dvec(1),Xout.lat(ii),-Xout.lon(ii));
-   Xout.Sunrise(ii) = rhr * 100 + rmin;
-   Xout.Sunset(ii) = shr * 100 + smin;
+   Xout.Sunrise(ii) = floor(rhr * 100 + rmin); %change to add floor here for export 3/24/2026
+   Xout.Sunset(ii) = floor(shr * 100 + smin);%change to add floor here for export 3/24/2026
     clear dvec rhr shr rmin smin
    %  get profile data
    Xout.pr(1:nz,ii) = CTD.Pressure(indx);
    Xout.de(1:nz,ii) = CTD.Depth(indx);
    Xout.te(1:nz,ii) = CTD.Temp(indx);
-%    Xout.co(1:nz,ii) = CTD.Conductivity(indx); %KL 2/8/2024 no conductivity data
+   %Xout.co(1:nz,ii) = CTD.Conductivity(indx);
    Xout.sa(1:nz,ii) = CTD.Salt(indx);
    Xout.o2(1:nz,ii) = CTD.O2(indx);
    Xout.bac(1:nz,ii) = CTD.Beam(indx);
@@ -268,7 +255,7 @@ end %for ii
 flist = fieldnames(CTD);
 nfields = length(flist);
 for ii = 1:ncast
-    theCast = castlist(ii); %KL note: this is 5-digit cruise and 3-digit cast
+    theCast = castlist(ii);
     indx = find(CTD.BATS_id == theCast);
     nz = length(indx);
  %    
@@ -281,33 +268,15 @@ for ii = 1:ncast
 %    
     MLD = get_mld_ctd(XX);
     ML_ToUse = MLD.dens125;  % ensure same ML is used by various functions
-    %KL adding options to XX,CTD,Xout; 6/24/2024 
     XX.MLD_dens125(:) = MLD.dens125;
     XX.MLD_bvfrq(:) = MLD.bvfrq;
     XX.MLD_densT2(:) = MLD.densT2;    
-    XX.MLD_densT3(:) = MLD.densT3;    
-    XX.MLD_densT1(:) = MLD.densT1;
-    XX.MLD_dens2(:) = MLD.dens2;    
-    XX.MLD_densGR(:) = MLD.densGR;    
-    XX.MLD_te2(:) = MLD.te2;    
-    
     CTD.MLD_dens125(indx) = MLD.dens125;
     CTD.MLD_bvfrq(indx) = MLD.bvfrq;
     CTD.MLD_densT2(indx) = MLD.densT2;
-    CTD.MLD_densT3(indx) = MLD.densT3; 
-    CTD.MLD_densT1(indx) = MLD.densT1; 
-    CTD.MLD_dens2(:) = MLD.dens2;    
-    CTD.MLD_densGR(:) = MLD.densGR;    
-    CTD.MLD_te2(:) = MLD.te2;    
-    
     Xout.MLD_dens125(ii) = MLD.dens125;
     Xout.MLD_bvfrq(ii) = MLD.bvfrq;
     Xout.MLD_densT2(ii) = MLD.densT2;    
-    Xout.MLD_densT3(ii) = MLD.densT3;
-    Xout.MLD_densT1(ii) = MLD.densT1;
-    Xout.MLD_dens2(ii) = MLD.dens2;    
-    Xout.MLD_densGR(ii) = MLD.densGR;    
-    Xout.MLD_te2(ii) = MLD.te2;      
    
 %   Sunrise was computed for Xout above
     XX.Sunrise(:) = Xout.Sunrise(ii);
@@ -332,7 +301,7 @@ if do_plots
          plot(XX.Fluor,XX.Pressure,'-c','Linewidth',1.5);
          plot(Xfilt,XX.Pressure,'-k','Linewidth',1.5);
 end
-     if abs(bias) > 0.005 & giveNotice
+     if abs(bias) > 0.005
        disp('Applying bias to fluor profile')
        Xfilt = Xfilt - bias;
 if do_plots
@@ -353,41 +322,14 @@ end
     if isempty(izmax)
         izmax = length(XX.Depth);
     end
-    
-    DCM = get_dcm_layer_ctd(Xfilt,XX.Depth, ML_ToUse,percent,izmax);   
+    DCM = get_dcm_layer_ctd(Xfilt,XX.Depth, ML_ToUse,percent,izmax);
     XX.DCM(:) = DCM.depth;
     CTD.DCM(indx) = DCM.depth;
     Xout.DCM(ii) = DCM.depth;
-    %KL adding option to store DCM.itop and DCMinML because will need that to define
-    %season 7/1/2024
-    XX.DCMde_top(:) = DCM.de_top;
-    CTD.DCMde_top(indx) = DCM.de_top;
-    Xout.DCMde_top(ii) = DCM.de_top;
-
-    XX.DCMde_bot(:) = DCM.de_bot;
-    CTD.DCMde_bot(indx) = DCM.de_bot;
-    Xout.DCMde_bot(ii) = DCM.de_bot;
-
-    XX.DCMinML(:) = DCM.DCMinML;
-    CTD.DCMinML(indx) = DCM.DCMinML;
-    Xout.DCMinML(ii) = DCM.DCMinML;
-       
     if ML_ToUse < -990;   % no ML defined -- likely a surface cast
         XX.DCM(:) = -999;
         CTD.DCM(indx) = -999;
         Xout.DCM(ii) = NaN;
-        %KL adding these variables so they also end up not defined
-        XX.DCMde_top(:) = -999;
-        CTD.DCMde_top(indx) = -999;
-        Xout.DCMde_top(ii) = NaN;
-
-        XX.DCMde_bot(:) = -999;
-        CTD.DCMde_bot(indx) = -999;
-        Xout.DCMde_bot(ii) = NaN;
-
-        XX.DCMinML(:) = -999;
-        CTD.DCMinML(indx) = -999;
-        Xout.DCMinML(ii) = NaN;
     end
     
 if do_plots
@@ -458,19 +400,8 @@ clear din parin
    Xout.vertZone(ibad,ii) = NaN;  
    
 % Label Seasons
-%KL change here - need year to calculate the season information that will
-%be used here
-   trans_dates = get_season_dates(Xout.year); %new function from KL
-
-   %theCode = label_seasons_ctd_Ruth_v0(XX,DCM,ML_ToUse,trans_dates); 
-   try
-       %can have cases with more than one month for cruises that cross
-       %months, use the first one in Xout
-        theCode = label_seasons_ctd_KL_v1(DCM.depth,DCM.de_top,ML_ToUse,Xout.month(1)); 
-   catch
-       keyboard
-   end
-
+   %theCode = label_seasons_ctd(XX,DCM,ML_ToUse,trans_dates);
+   theCode = label_seasons_ctd(XX,trans_dates); %update KL 6/12/2026
    disp([num2str(Xout.year(ii)),' ',num2str(Xout.month(ii)),' ',num2str(Xout.day(ii)),'  Season: ', num2str(theCode)]);
    XX.Season(:) = theCode;
    CTD.Season(indx) = theCode;
@@ -484,13 +415,12 @@ clear din parin
         XX.(fname) = BB;       
     end
 
-% % Output the cast %KL note: don't need individual casts 
-%KL note - these are square matrices, to whatever depth is set in MAXZ
-%    fmt = '%8d_%1d%04d_%03d_ctd.csv';
-%    outfile = sprintf(fmt,XX.yyyymmdd(1),Xout.type(ii),XX.Cruise(1),XX.Cast(1));
-%    %disp(['Writing ',outfile]);
-%    TTcast = struct2table(XX);
-%    writetable(TTcast,outfile);
+% Output the cast
+   fmt = '%8d_%1d%04d_%03d_ctd.csv';
+   outfile = sprintf(fmt,XX.yyyymmdd(1),Xout.type(ii),XX.Cruise(1),XX.Cast(1));
+   %disp(['Writing ',outfile]);
+   TTcast = struct2table(XX);
+   writetable(TTcast,outfile);
   
   clear XX DCM MLD TTcast
   
@@ -498,8 +428,6 @@ end % for ii
 
    fmt = 'CRU_%1d%04d_ctd.csv';
    outfile = sprintf(fmt,Xout.type(1),CTD.Cruise(1));
-   %stick in the directory I want
-   outfile = strcat(outdir,outfile);
    %disp(['Writing ',outfile]);
    
    % replace any NaNs in CTD struct with -999.
@@ -511,13 +439,16 @@ end % for ii
        CTD.(fname) = CC;
    end
    TTcruise = struct2table(CTD);
-   writetable(TTcruise,outfile);
+   %writetable(TTcruise,outfile);
+   writetable(TTcruise,fullfile(processedDir,outfile)) %change to this KL 6/12/2026
    
     if do_plots
-        tilefigs
-        reply = input(' Press ENTER to close figures....');
+        reply = input(' HIT any key to close figures....');
         close all
     end
 %
 %disp('Done!');
 end %function
+
+
+
