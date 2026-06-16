@@ -420,7 +420,7 @@ clear din parin
    outfile = sprintf(fmt,XX.yyyymmdd(1),Xout.type(ii),XX.Cruise(1),XX.Cast(1));
    %disp(['Writing ',outfile]);
    TTcast = struct2table(XX);
-   writetable(TTcast,outfile);
+   writetable(TTcast,fullfile(processedDir,outfile));
   
   clear XX DCM MLD TTcast
   

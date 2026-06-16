@@ -1,8 +1,13 @@
 # BATSallTime
 Krista Longnecker, most recent notes at the top
 
-### 12 June 2026
+### 15 June 2026
 Updating to use the BATS data now available from BCO-DMO. I have a few projects that need these calculations, so I backtracked to here.
+Using ```MATLAB_code\create_BATSallTime_files_2026.m``` to gather up the BATS CTD data from BCO-DMO and apply Ruth Curry's code to get the derived variables.
+Also added dummy end to the seasons as I have data files to the middle of June 2025, but only did the seasons in 2025 to May 2025. June 2025 will definitely be in stratified.
+
+- [ ] Make sure the output from the new data sources matches the old data in terms of the calculations
+
 ### 13 February 2026
 Minor tidying up and ready to put this into the BIOS-SCOPE GitHUb site. Haven't yet dealt with BCO-DMO direct download, but that can wait. For now, the data are downloaded manually from the BATS project at BCO-DMO: https://www.bco-dmo.org/dataset/3918. Used the data file with the data from 1988 up through June 2025 (most recent available).
 

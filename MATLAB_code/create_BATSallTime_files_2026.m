@@ -1,14 +1,11 @@
 % Compile BATS/BIOSSCOPE CTD files in .csv and .mat formats
-% Add fields to Master Bottle file 
 % Original code from Ruth Curry, BIOS / ASU
-% Krista Longnecker; updated 10 July 2024
+% Krista Longnecker; first updated 10 July 2024
 %
 % Some notes from Krista (10 July 2024)
 % (1) you will need to update the path information and file names
-% up through row ~106 in this code. There should be no need to change
+% up through row ~22 in this code. There should be no need to change
 % anything past that point.
-% (2) The output from this code will be a CSV file that will be saved in
-% the place defined at line 29
 %
 % About the seasons - in June 2024 we received updated season information
 % from Ruth, this update takes advantage of the updated season information
@@ -25,24 +22,36 @@ if isequal(getenv('COMPUTERNAME'),'CORTADO')
     addpath(genpath('C:\DropBox\GitHub_cortado\BATSallTime\MATLAB_code\mfiles'));    
 
     %% update the folder information before getting started
-    %Krista has put the next two folders outside the space accessible by GitHub
-    %These files are too large to put into GitHub
+    % Krista has put the next two folders outside the space accessible by 
+    % GitHub because they are too large to put into GitHub
     % can use the files in data_pipeline, no need to copy them to new
     % repository
     rootdir = 'C:\DropBox\GitHub_cortado\data_pipeline\';
     %use the datadir to temporarily hold your CTD data (make sure this is
     %outside where GitHub syncs as it could be a large folder)
     datadir = fullfile(rootdir,'RawData'); %put BCO-DMO data file here  
-elseif isequal(getenv('COMPUTERNAME'),'LONGNECKER-1650')
-    %fill this in later as needed
+elseif isequal(getenv('COMPUTERNAME'),'DESKTOP-QB9J1SQ')
+    %% add ./BIOSSCOPE/CTD_BOTTLE/mfiles into matlab path
+    addpath(genpath('D:\DropBox\GitHub_niskin\BATSallTime\MATLAB_code\mfiles'));    
+
+    %% update the folder information before getting started
+    % Krista has put the next two folders outside the space accessible by 
+    % GitHub because they are too large to put into GitHub
+    % can use the files in data_pipeline, no need to copy them to new
+    % repository
+    rootdir = 'D:\DropBox\GitHub_niskin\data_pipeline\';
+    %use the datadir to temporarily hold your CTD data (make sure this is
+    %outside where GitHub syncs as it could be a large folder)
+    datadir = fullfile(rootdir,'RawData'); %put BCO-DMO data file here 
 
 end
-% 
+
 % %Get the CTD data file from BCO-DMO (https://www.bco-dmo.org/dataset/3918)
 % Primary data file for dataset ID 3918, version 11
 % File:bats_ctd_v011_update.txt
 % Creation date: 3 December 2025
 % Data date (cruise) limits: December 1988(cruise 10001) - June 2025 (cruise 10428)
+%
 % Will parse out the BCO-DMO into individual files as so much of Ruth's
 % code is based on that
 CTDdatadir = fullfile(datadir,'BCODMOdataset3918_BATS_v11');
@@ -55,7 +64,7 @@ if 1
     %Use the dates defined in the easy-to-read Excel file and convert to
     %the format Ruth uses in her code; update 10 July 2024
     %Use this function to make a MATLAB structure with transition dates
-    seasonsFile = fullfile('../BATS_seasons_wKLedits.2026.02.13.xlsx');
+    seasonsFile = fullfile('../BATS_seasons_wKLedits.2026.06.15.xlsx');
     %use this function to reformat the dates, set fName in calcDerivedVariables
     season_dates = reformat_season_dates(seasonsFile) ; 
 elseif 0
@@ -104,7 +113,7 @@ end
 
 
 % %%%%%%%%%%%%%%%% There should be no need to make changes below this point
-% %%%%%%%%%%%%%%%% Krista Longnecker, updated 19 January 2024
+% %%%%%%%%%%%%%%%% Krista Longnecker, updated 15 June 2026
 % %%%%%%%%%%%%%%%%
 
 %read in the CTD data as a table
